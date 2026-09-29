@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>공지 웹·모바일 보기 예시</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #222; font: 16px/1.7 system-ui, sans-serif; }
+    .view-toolbar { position: sticky; top: 0; z-index: 10; display: flex; justify-content: center; padding: 9px 16px; background: #f7f8fa; border-bottom: 1px solid #e0e3e8; }
+    .view-switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #d9dde4; border-radius: 9px; background: #fff; }
+    .view-switch button { min-width: 112px; min-height: 38px; border: 0; border-radius: 6px; background: transparent; color: #596477; font: 700 14px system-ui, sans-serif; cursor: pointer; }
+    .view-switch button[aria-pressed="true"] { background: #ff6c00; color: #fff; }
+    .view-switch button:focus-visible { outline: 2px solid #222; outline-offset: 2px; }
+    .mobile-preview[hidden] { display: none !important; }
+    .mobile-preview { display: flex; justify-content: center; min-height: calc(100dvh - 57px); padding: 24px 12px; background: #e9edf2; }
+    .phone-frame { width: min(390px, 100%); height: min(840px, calc(100dvh - 105px)); min-height: 320px; padding: 8px; border: 1px solid #292d35; border-radius: 26px; background: #292d35; }
+    .phone-frame iframe { display: block; width: 100%; height: 100%; border: 0; border-radius: 18px; background: #fff; }
+    .notice { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+    .notice h1 { margin: 0 0 24px; font-size: 32px; }
+    .notice-body { max-width: 840px; }
+    .notice-image { display: block; width: 100%; height: auto; aspect-ratio: 16 / 6; background: #fff3e9; border: 1px solid #ffd3b5; }
+    html[data-notice-frame="mobile"] .view-toolbar,
+    html[data-notice-frame="mobile"] .mobile-preview { display: none !important; }
+    @media screen { body[data-notice-view="mobile"] > :not(.view-toolbar):not(.mobile-preview):not(script) { display: none !important; } }
+    @media (max-width: 650px) {
+      .view-switch { width: min(100%, 350px); }
+      .view-switch button { min-width: 0; flex: 1; }
+      .notice { padding: 22px 16px; }
+      .notice h1 { font-size: 24px; }
+      .mobile-preview { padding: 10px 7px; }
+      .phone-frame { height: calc(100dvh - 82px); min-height: 300px; }
+    }
+    @media print { .view-toolbar, .mobile-preview { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="view-toolbar">
+    <div class="view-switch" role="group" aria-label="화면 보기 방식">
+      <button id="view-web" type="button" aria-pressed="true">웹 버전</button>
+      <button id="view-mobile" type="button" aria-pressed="false" aria-controls="mobile-preview">모바일 버전</button>
+    </div>
+  </div>
+  <div class="mobile-preview" id="mobile-preview" hidden>
+    <div class="phone-frame"><iframe id="mobile-preview-frame" title="공지사항 모바일 버전 미리보기"></iframe></div>
+  </div>
+  <main class="notice">
+    <h1>공지사항 제목 예시</h1>
+    <article class="notice-body">
+      <div class="notice-image" role="img" aria-label="실제 공지 이미지가 들어갈 자리"></div>
+      <p>이 예시는 보기 전환 동작만 설명합니다. 실제 공지에는 확인된 내용과 사용 권한이 있는 이미지를 넣으세요.</p>
+    </article>
+  </main>
+  <script>
+    (() => {
+      'use strict';
+      if (document.documentElement.dataset.noticeFrame === 'mobile') return;
+      const webButton = document.getElementById('view-web');
+      const mobileButton = document.getElementById('view-mobile');
+      const preview = document.getElementById('mobile-preview');
+      const frame = document.getElementById('mobile-preview-frame');
+      const compactScreen = window.matchMedia('(max-width: 650px)');
+      const storageKey = 'notice:view-mode';
+      let frameReady = false;
+      let webScroll = 0;
+      let currentMode = null;
+      let manualChoice = false;
+
+      function savedMode() {
+        try {
+          const value = window.localStorage.getItem(storageKey);
+          return value === 'web' || value === 'mobile' ? value : null;
+        } catch { return null; }
+      }
+
+      function loadMobileFrame() {
+        if (frameReady) return;
+        const clone = document.documentElement.cloneNode(true);
+        clone.dataset.noticeFrame = 'mobile';
+        clone.querySelector('body').removeAttribute('data-notice-view');
+        frame.srcdoc = '<!doctype html>\n' + clone.outerHTML;
+        frameReady = true;
+      }
+
+      function setView(mode, remember = false) {
+        const mobile = mode === 'mobile';
+        if (mobile) {
+          if (currentMode === 'web') webScroll = window.scrollY;
+          loadMobileFrame();
+        }
+        document.body.dataset.noticeView = mode;
+        preview.hidden = !mobile;
+        webButton.setAttribute('aria-pressed', String(!mobile));
+        mobileButton.setAttribute('aria-pressed', String(mobile));
+        if (currentMode !== mode) window.scrollTo(0, mobile ? 0 : webScroll);
+        currentMode = mode;
+        if (remember) {
+          manualChoice = true;
+          try { window.localStorage.setItem(storageKey, mode); } catch {}
+        }
+      }
+
+      webButton.addEventListener('click', () => setView('web', true));
+      mobileButton.addEventListener('click', () => setView('mobile', true));
+      const preference = savedMode();
+      manualChoice = preference !== null;
+      setView(preference || (compactScreen.matches ? 'mobile' : 'web'));
+      compactScreen.addEventListener('change', event => {
+        if (!manualChoice) setView(event.matches ? 'mobile' : 'web');
+      });
+    })();
+  </script>
+</body>
+</html>
