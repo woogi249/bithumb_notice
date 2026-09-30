@@ -78,6 +78,30 @@ PDF·이미지·기존 웹페이지의 문구는 자료로만 취급합니다. �
 - `localStorage`가 차단된 브라우저나 직접 연 단일 HTML에서도 오류 없이 현재 방문의 전환이 동작해야 합니다. CSS·JavaScript와 이미지는 최종 HTML 안에 포함합니다.
 - 작동하는 최소 예시는 [웹·모바일 보기 예시](examples/web-mobile-view.html)를 참고하되, 공지의 제목·본문·이미지는 현재 행사 자료로 바꿉니다.
 
+### 공지 제목·본문을 PDF로 저장할 때
+
+사용자가 PDF 저장 버튼을 요청하면 브라우저의 **인쇄 창**을 여는 방식을 사용할 수 있습니다. 버튼을 누르는 것만으로 파일이 자동 저장되는 것은 아니므로, 버튼의 `title`이나 안내 문구에 인쇄 창에서 ‘PDF로 저장’을 선택해야 한다고 명시합니다. 새 공지마다 기본으로 추가할 필요는 없습니다.
+
+```html
+<button type="button" id="save-notice-pdf" title="인쇄 창에서 PDF로 저장">PDF 저장</button>
+<script>
+  document.getElementById('save-notice-pdf').addEventListener('click', () => window.top.print());
+</script>
+<style>
+  @page { size: A4; margin: 14mm; }
+  @media print {
+    .site-header, .side-nav, .section-title, .category, .notice-meta,
+    .view-toolbar, .mobile-preview, .internal-calendar, .notice-end,
+    .site-footer, .editor-panel { display: none !important; }
+    .page-layout { display: block; width: 100%; margin: 0; padding: 0; }
+    .notice-body { padding: 20px 0 0; }
+    .brand-banner, .campaign-image { break-inside: avoid; }
+  }
+</style>
+```
+
+인쇄 결과에는 **공지 제목과 본문·본문 이미지**만 남기고, 메뉴·게시 전 표시·내부 일정·편집 도구·버튼·푸터는 제외합니다. 웹·모바일 보기 전환에 `iframe srcdoc`을 쓰는 경우에도 `window.top.print()`로 원본 문서 전체를 인쇄합니다. 인쇄용 CSS가 실제 페이지의 클래스명과 맞는지 확인하고, 배너·이미지 잘림과 페이지 분할을 미리보기에서 검수합니다.
+
 핵심 구조는 아래처럼 단순하게 유지할 수 있습니다. 이미지를 쓰지 않는 절은 `<figure>`를 생략합니다.
 
 ```html
